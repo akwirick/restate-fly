@@ -1,0 +1,55 @@
+# fly.toml app configuration file generated for restate-srcmain on 2023-09-06T09:33:55-07:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = "restate-srcmain"
+kill_signal = "SIGINT"
+kill_timeout = 5
+primary_region = "sea"
+
+[build]
+  image = "ghcr.io/restatedev/restate-dist:latest"
+
+[deploy]
+  strategy = "rolling"
+
+# Ingress (gRPC + Connect Protocol) - Acts as an API gateway for all services registered with Restate
+[[services]]
+  internal_port = 9090
+  protocol = "tcp"
+  
+  # Configured as a gRPC service
+  [[services.ports]]
+      handlers = ["tls"]
+      port = 9090
+      tls_options = { "alpn" = ["h2"] }
+
+# Storage (gRPC) - Exposes raw RocksDB read-only storage operations, used by the CLI
+[[services]]
+  internal_port = 9090
+  protocol = "tcp"
+  
+  # Configured as a gRPC service
+  [[services.ports]]
+      handlers = ["tls"]
+      port = 9090
+      tls_options = { "alpn" = ["h2"] }
+
+# Meta (REST) - Allows for CRUD operations on service metadata, eg for service registration
+[[services]]
+  internal_port = 8081
+  protocol = "tcp"
+  
+  # Configured as a plain HTTP service
+  [[services.ports]]
+      handlers = ["http"]
+      port = 8081
+      force_https=true
+
+[env]
+  RESTATE_TRACING__LOG_FORMAT = "Json"
+
+[mounts]
+  source="restate_srcmain_data"
+  destination="/target"
